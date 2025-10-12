@@ -1,0 +1,66 @@
+2025-10-11 22:02:15.442 [info] [main] Log level: Info
+2025-10-11 22:02:15.442 [info] [main] Validating found git in: "git"
+2025-10-11 22:02:15.442 [info] [main] Using git "2.51.0" from "git"
+2025-10-11 22:02:15.442 [info] [Model][doInitialScan] Initial repository scan started
+2025-10-11 22:02:15.442 [info] [Model][doInitialScan] Initial repository scan completed - repositories (0), closed repositories (0), parent repositories (0), unsafe repositories (0)
+2025-10-11 22:03:06.944 [info] [main] Log level: Info
+2025-10-11 22:03:06.944 [info] [main] Validating found git in: "git"
+2025-10-11 22:03:06.944 [info] [main] Using git "2.51.0" from "git"
+2025-10-11 22:03:06.944 [info] [Model][doInitialScan] Initial repository scan started
+2025-10-11 22:03:06.944 [info] > git rev-parse --show-toplevel [4ms]
+2025-10-11 22:03:06.945 [info] > git rev-parse --git-dir --git-common-dir --show-superproject-working-tree [1ms]
+2025-10-11 22:03:06.951 [info] [Model][openRepository] Opened repository (path): /home/jonathan/Script
+2025-10-11 22:03:06.951 [info] [Model][openRepository] Opened repository (real path): /home/jonathan/Script
+2025-10-11 22:03:06.951 [info] [Model][openRepository] Opened repository (kind): repository
+2025-10-11 22:03:06.953 [info] [Model][doInitialScan] Initial repository scan completed - repositories (1), closed repositories (0), parent repositories (0), unsafe repositories (0)
+2025-10-11 22:03:06.957 [info] > git config --get commit.template [1ms]
+2025-10-11 22:03:06.962 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/main refs/remotes/main [3ms]
+2025-10-11 22:03:06.965 [warning] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open '/home/jonathan/Script/.git/refs/remotes/origin/main'
+2025-10-11 22:03:06.966 [info] > git rev-parse refs/remotes/origin/main [1ms]
+2025-10-11 22:03:06.971 [info] > git status -z -uall [3ms]
+2025-10-11 22:03:06.971 [info] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [1ms]
+2025-10-11 22:03:06.986 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/main refs/remotes/main [4ms]
+2025-10-11 22:03:06.988 [info] > git config --get commit.template [3ms]
+2025-10-11 22:03:06.989 [info] > git config --get --local branch.main.vscode-merge-base [1ms]
+2025-10-11 22:03:06.993 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/origin/main refs/remotes/origin/main [2ms]
+2025-10-11 22:03:06.996 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/main refs/remotes/main [3ms]
+2025-10-11 22:03:06.998 [warning] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open '/home/jonathan/Script/.git/refs/remotes/origin/main'
+2025-10-11 22:03:06.998 [info] > git merge-base refs/heads/main refs/remotes/origin/main [3ms]
+2025-10-11 22:03:07.000 [info] > git rev-parse refs/remotes/origin/main [2ms]
+2025-10-11 22:03:07.005 [info] > git status -z -uall [3ms]
+2025-10-11 22:03:07.005 [info] > git diff --name-status -z --diff-filter=ADMR d5785932da6c6de67806f90a4a6ff2b2b70ee7d8...refs/remotes/origin/main [5ms]
+2025-10-11 22:03:07.006 [info] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [2ms]
+2025-10-11 22:03:07.018 [info] > git log --format=%H%n%aN%n%aE%n%at%n%ct%n%P%n%D%n%B -z --shortstat --diff-merges=first-parent -n50 --skip=0 --topo-order --decorate=full --stdin [1ms]
+2025-10-11 22:03:07.566 [info] > git check-ignore -v -z --stdin [1ms]
+2025-10-11 22:03:26.853 [info] [main] Log level: Info
+2025-10-11 22:03:26.853 [info] [main] Validating found git in: "git"
+2025-10-11 22:03:26.853 [info] [main] Using git "2.51.0" from "git"
+2025-10-11 22:03:26.853 [info] [Model][doInitialScan] Initial repository scan started
+2025-10-11 22:03:26.853 [info] > git rev-parse --show-toplevel [4ms]
+2025-10-11 22:03:26.855 [info] > git rev-parse --git-dir --git-common-dir --show-superproject-working-tree [2ms]
+2025-10-11 22:03:26.861 [info] [Model][openRepository] Opened repository (path): /home/jonathan/Script
+2025-10-11 22:03:26.861 [info] [Model][openRepository] Opened repository (real path): /home/jonathan/Script
+2025-10-11 22:03:26.861 [info] [Model][openRepository] Opened repository (kind): repository
+2025-10-11 22:03:26.863 [info] [Model][doInitialScan] Initial repository scan completed - repositories (1), closed repositories (0), parent repositories (0), unsafe repositories (0)
+2025-10-11 22:03:26.866 [info] > git config --get commit.template [1ms]
+2025-10-11 22:03:26.870 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/main refs/remotes/main [1ms]
+2025-10-11 22:03:26.872 [warning] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open '/home/jonathan/Script/.git/refs/remotes/origin/main'
+2025-10-11 22:03:26.873 [info] > git rev-parse refs/remotes/origin/main [1ms]
+2025-10-11 22:03:26.878 [info] > git status -z -uall [3ms]
+2025-10-11 22:03:26.879 [info] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [2ms]
+2025-10-11 22:03:26.892 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/main refs/remotes/main [3ms]
+2025-10-11 22:03:26.894 [info] > git config --get commit.template [2ms]
+2025-10-11 22:03:26.897 [info] > git config --get --local branch.main.vscode-merge-base [3ms]
+2025-10-11 22:03:26.899 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/main refs/remotes/main [3ms]
+2025-10-11 22:03:26.902 [warning] [Git][revParse] Unable to read file: ENOENT: no such file or directory, open '/home/jonathan/Script/.git/refs/remotes/origin/main'
+2025-10-11 22:03:26.902 [info] > git for-each-ref --format=%(refname)%00%(upstream:short)%00%(objectname)%00%(upstream:track)%00%(upstream:remotename)%00%(upstream:remoteref) refs/heads/origin/main refs/remotes/origin/main [3ms]
+2025-10-11 22:03:26.905 [info] > git rev-parse refs/remotes/origin/main [3ms]
+2025-10-11 22:03:26.910 [info] > git status -z -uall [3ms]
+2025-10-11 22:03:26.910 [info] > git merge-base refs/heads/main refs/remotes/origin/main [6ms]
+2025-10-11 22:03:26.913 [info] > git for-each-ref --sort -committerdate --format %(refname)%00%(objectname)%00%(*objectname) [4ms]
+2025-10-11 22:03:26.921 [info] > git merge-base refs/heads/main refs/remotes/origin/main [5ms]
+2025-10-11 22:03:26.923 [info] > git diff --name-status -z --diff-filter=ADMR d5785932da6c6de67806f90a4a6ff2b2b70ee7d8...refs/remotes/origin/main [11ms]
+2025-10-11 22:03:26.924 [info] > git diff --name-status -z --diff-filter=ADMR d5785932da6c6de67806f90a4a6ff2b2b70ee7d8...refs/remotes/origin/main [1ms]
+2025-10-11 22:03:26.924 [info] > git log --format=%H%n%aN%n%aE%n%at%n%ct%n%P%n%D%n%B -z --shortstat --diff-merges=first-parent -n50 --skip=0 --topo-order --decorate=full --stdin [4ms]
+2025-10-11 22:03:27.413 [info] > git check-ignore -v -z --stdin [1ms]
+2025-10-11 22:03:33.970 [info] > git log --format=%H%n%aN%n%aE%n%at%n%ct%n%P%n%D%n%B -z --shortstat --diff-merges=first-parent -n50 --skip=0 --topo-order --decorate=full --stdin [2ms]

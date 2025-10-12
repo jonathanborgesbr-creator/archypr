@@ -1,0 +1,7 @@
+2025-10-11 22:02:07.707 [info] Log level: Info
+2025-10-11 22:02:46.522 [info] Log level: Info
+2025-10-11 22:03:07.021 [warning] [GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Failed to update repository branch protection: No GitHub authentication session available.
+2025-10-11 22:03:07.025 [warning] [GitHubSourceControlHistoryItemDetailsProvider][_loadAssignableUsers] Failed to load assignable user(s) for jonathanborgesbr-creator/Script: Error: No GitHub authentication session available.
+2025-10-11 22:03:19.795 [info] Log level: Info
+2025-10-11 22:03:26.925 [warning] [GitHubBranchProtectionProvider][updateRepositoryBranchProtection] Failed to update repository branch protection: No GitHub authentication session available.
+2025-10-11 22:03:26.925 [warning] [GitHubSourceControlHistoryItemDetailsProvider][_loadAssignableUsers] Failed to load assignable user(s) for jonathanborgesbr-creator/Script: Error: No GitHub authentication session available.
