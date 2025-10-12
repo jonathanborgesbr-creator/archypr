@@ -8,7 +8,7 @@ fi
 USUARIO="$SUDO_USER"
 
 # Define a localização do repositório clonado (onde o script está sendo executado)
-# Esta variável é usada para encontrar a sua pasta .config e outros dotfiles
+# Esta variável é usada para encontrar a sua pasta .config e outros dotfiles (AGORA IGNORADA)
 DOTFILES_DIR=$(pwd)
 
 # ===============================================
@@ -91,38 +91,11 @@ su - "$USUARIO" << EOF
 EOF
 
 # ===============================================
-# 5. FINALIZAÇÕES, PERMISSÕES E DOTFILES (CORRIGIDO)
+# 5. FINALIZAÇÕES, PERMISSÕES E CONFIGURAÇÕES DE SISTEMA
+# (PARTE DE CÓPIA DE DOTFILES REMOVIDA)
 # ===============================================
 
-echo "--> 5/5: Configurando permissões de GPU, layout de teclado e copiando dotfiles..."
-
-# --- 1. CÓPIA DOS DOTFILES ---
-
-# 1.1. Copia a pasta .config e seu CONTEÚDO
-DOTFILES_CONFIG_SOURCE="$DOTFILES_DIR/.config"
-if [ -d "$DOTFILES_CONFIG_SOURCE" ]; then
-    echo "Copiando configurações da pasta .config..."
-    
-    # CRÍTICO CORRIGIDO: Usa aspas simples (') em $HOME para que seja expandido pelo shell do USUARIO.
-    # Adiciona 'mkdir -p' para garantir que a pasta .config exista.
-    su - "$USUARIO" -c "mkdir -p '$HOME/.config' && cp -r '$DOTFILES_CONFIG_SOURCE'/* '$HOME/.config/'"
-    
-    echo "Configurações do .config copiadas com sucesso para $HOME."
-else
-    echo "AVISO: Pasta $DOTFILES_CONFIG_SOURCE não encontrada. Configurações GUI NÃO copiadas."
-fi
-
-# 1.2. Copia arquivos de configuração da raiz (como .bashrc)
-DOTFILES_ROOT_SOURCE_BASH="$DOTFILES_DIR/.bashrc"
-if [ -f "$DOTFILES_ROOT_SOURCE_BASH" ]; then
-    # CRÍTICO CORRIGIDO: Usa aspas simples (') em $HOME/.bashrc.
-    su - "$USUARIO" -c "cp '$DOTFILES_ROOT_SOURCE_BASH' '$HOME/.bashrc'"
-    echo "Arquivo .bashrc copiado com sucesso para $HOME."
-else
-    echo "AVISO: Arquivo $DOTFILES_ROOT_SOURCE_BASH não encontrado." 
-fi
-
-# --- 2. PERMISSÕES E TECLADO ---
+echo "--> 5/5: Configurando permissões de GPU e layout de teclado..."
 
 # Permissão para Gamescope
 sudo setcap 'CAP_SYS_NICE=eip' $(which gamescope)
