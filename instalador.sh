@@ -7,9 +7,6 @@ if [ -z "$SUDO_USER" ]; then
 fi
 USUARIO="$SUDO_USER"
 
-# Define a localização do repositório clonado (onde o script está sendo executado)
-# Esta variável é usada para encontrar a sua pasta .config e outros dotfiles (AGORA IGNORADA)
-DOTFILES_DIR=$(pwd)
 
 # ===============================================
 # 1. ATUALIZAÇÃO E YAY (Base do Sistema)
