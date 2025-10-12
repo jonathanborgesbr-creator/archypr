@@ -91,7 +91,7 @@ su - "$USUARIO" << EOF
 EOF
 
 # ===============================================
-# 5. FINALIZAÇÕES, PERMISSÕES E DOTFILES (AJUSTADO PARA BASHRC)
+# 5. FINALIZAÇÕES, PERMISSÕES E DOTFILES (CORRIGIDO)
 # ===============================================
 
 echo "--> 5/5: Configurando permissões de GPU, layout de teclado e copiando dotfiles..."
@@ -103,9 +103,9 @@ DOTFILES_CONFIG_SOURCE="$DOTFILES_DIR/.config"
 if [ -d "$DOTFILES_CONFIG_SOURCE" ]; then
     echo "Copiando configurações da pasta .config..."
     
-    # CRÍTICO: Copia o CONTEÚDO (hypr/, waybar/, kitty/, etc.) para o $HOME/.config/
-    # O "/*" garante que não criemos um $HOME/.config/.config
-    su - "$USUARIO" -c "cp -r $DOTFILES_CONFIG_SOURCE/* $HOME/.config/"
+    # CRÍTICO CORRIGIDO: Usa aspas simples (') em $HOME para que seja expandido pelo shell do USUARIO.
+    # Adiciona 'mkdir -p' para garantir que a pasta .config exista.
+    su - "$USUARIO" -c "mkdir -p '$HOME/.config' && cp -r '$DOTFILES_CONFIG_SOURCE'/* '$HOME/.config/'"
     
     echo "Configurações do .config copiadas com sucesso para $HOME."
 else
@@ -115,10 +115,10 @@ fi
 # 1.2. Copia arquivos de configuração da raiz (como .bashrc)
 DOTFILES_ROOT_SOURCE_BASH="$DOTFILES_DIR/.bashrc"
 if [ -f "$DOTFILES_ROOT_SOURCE_BASH" ]; then
-    su - "$USUARIO" -c "cp $DOTFILES_ROOT_SOURCE_BASH $HOME/"
+    # CRÍTICO CORRIGIDO: Usa aspas simples (') em $HOME/.bashrc.
+    su - "$USUARIO" -c "cp '$DOTFILES_ROOT_SOURCE_BASH' '$HOME/.bashrc'"
     echo "Arquivo .bashrc copiado com sucesso para $HOME."
 else
-    # Se você removeu o .zshrc e ainda não criou o .bashrc
     echo "AVISO: Arquivo $DOTFILES_ROOT_SOURCE_BASH não encontrado." 
 fi
 
