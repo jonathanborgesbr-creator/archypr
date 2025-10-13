@@ -1,1 +1,0 @@
-sudo pacman -S --needed --noconfirm pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol bluez bluez-utils blueman dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland
