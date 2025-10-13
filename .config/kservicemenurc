@@ -1,0 +1,11 @@
+[Show]
+compressfileitemaction=true
+extractfileitemaction=true
+forgetfileitemaction=true
+kactivitymanagerd_fileitem_linking_plugin=true
+kio-admin=true
+makefileactions=true
+mountisoaction=true
+movetonewfolderitemaction=true
+setfoldericonitemaction=true
+tagsfileitemaction=true

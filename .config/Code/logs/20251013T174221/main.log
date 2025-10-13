@@ -1,0 +1,4 @@
+2025-10-13 17:42:21.396 [error] Invalid path provided: /home/jonathan/Documentos/archypr, ENOENT: no such file or directory, stat '/home/jonathan/Documentos/archypr'
+2025-10-13 17:42:21.423 [info] update#setState idle
+2025-10-13 17:42:25.022 [info] Extension host with pid 3114 exited with code: 0, signal: unknown.
+2025-10-13 17:42:25.033 [error] [UtilityProcess id: 1, type: fileWatcher, pid: 3059]: crashed with code 15 and reason 'killed'

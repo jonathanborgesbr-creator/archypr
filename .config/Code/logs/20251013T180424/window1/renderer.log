@@ -1,0 +1,14 @@
+2025-10-13 18:04:25.460 [info] Started local extension host with pid 7497.
+2025-10-13 18:04:25.913 [info] MCP Registry configured: https://api.mcp.github.com/2025-09-15
+2025-10-13 18:04:25.970 [info] Settings Sync: Account status changed from uninitialized to unavailable
+2025-10-13 18:04:28.104 [info] [perf] Render performance baseline is 14ms
+2025-10-13 18:06:47.728 [error] [Extension Host] (node:7497) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+(Use `exe --trace-deprecation ...` to show where the warning was created)
+2025-10-13 18:06:52.509 [info] ChatSessionStore: Migrating 0 chat sessions from storage service to file system
+2025-10-13 18:06:52.593 [info] Started local extension host with pid 9889.
+2025-10-13 18:06:52.974 [info] MCP Registry configured: https://api.mcp.github.com/2025-09-15
+2025-10-13 18:06:53.026 [info] Settings Sync: Account status changed from uninitialized to unavailable
+2025-10-13 18:06:55.185 [info] [perf] Render performance baseline is 14ms
+2025-10-13 18:07:15.675 [warning] Settings pattern "mcp" doesn't match any settings
+2025-10-13 18:07:15.675 [warning] SettingsEditor2: Settings not included in settingsLayout.ts: github.copilot.chat.agent.terminal.allowList, github.copilot.chat.agent.terminal.denyList
+2025-10-13 18:07:20.080 [warning] Settings pattern "mcp" doesn't match any settings

@@ -1,0 +1,16 @@
+#################
+### AUTOSTART ###
+#################
+
+# ... outros exec-once ...
+
+# --- Forçar Tema GTK (Geralmente Breeze-Dark ou Adwaita-Dark) ---
+# Define o tema para GTK3
+exec-once = gsettings set org.gnome.desktop.interface gtk-theme "Breeze-Dark"
+
+# Força o modo escuro para aplicativos GTK4 (Libadwaita)
+exec-once = gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
+
+# --- Opcional: Para aplicativos que resistem (Nautilus, alguns Flatpaks) ---
+# Você também pode exportar GTK_THEME se o comando acima não funcionar 100%
+# exec-once = export GTK_THEME=Breeze-Dark

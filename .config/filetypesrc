@@ -1,0 +1,4 @@
+[EmbedSettings]
+embed-application/x-shellscript=false
+embed-text/plain=false
+embed-text/x-csrc=false
