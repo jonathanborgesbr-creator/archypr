@@ -86,7 +86,7 @@ install_batch "FONTES, TEMAS e FERRAMENTAS" "${BATCH2_PACKAGES[@]}"
 BATCH3_PACKAGES=(
     pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber
     gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly
-    ffmpeg mpv pavucontrol-gtk
+    ffmpeg mpv pavucontrol
     bluez bluez-utils blueman
     dolphin dolphin-plugins ark kio-admin polkit-kde-agent
     qt5-wayland qt6-wayland
