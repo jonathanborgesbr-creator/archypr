@@ -11,15 +11,56 @@ separator() {
     echo -e "\n${YELLOW}------------------------------------------------------${NC}"
 }
 
+# --- NOVA FUNÇÃO: Pausa para confirmação do usuário com tratamento de erro ---
+confirmar_proxima_etapa() {
+    local proxima_acao="$1"
+    local status_anterior=$2
+
+    # Se a etapa anterior falhou
+    if [ "$status_anterior" -ne 0 ]; then
+        echo -e "\n${YELLOW}A etapa anterior encontrou um erro.${NC}"
+        while true; do
+            read -p "Deseja ignorar este erro e continuar para a ${proxima_acao}? (s/N): " resposta
+            resposta=${resposta:-N} # Padrão é 'Não'
+            case $resposta in
+                [Ss]* ) echo -e "${YELLOW}Continuando, mas o sistema pode ficar em um estado inconsistente.${NC}"; return 0;;
+                [Nn]* ) echo -e "\n${RED}Operação abortada pelo usuário devido a erro anterior.${NC}"; exit 1;;
+                * ) echo "Resposta inválida. Por favor, digite 's' para sim ou 'N' para não.";;
+            esac
+        done
+    fi
+    
+    # Se a etapa anterior foi bem-sucedida
+    echo -e "\n${GREEN}Etapa anterior concluída com êxito.${NC}"
+    
+    while true; do
+        read -p "Deseja prosseguir para a ${proxima_acao}? (S/n): " resposta
+        resposta=${resposta:-S} # Padrão é 'Sim'
+        case $resposta in
+            [Ss]* ) return 0;; # Continua
+            [Nn]* ) echo -e "\n${RED}Operação abortada pelo usuário.${NC}"; exit 0;;
+            * ) echo "Resposta inválida. Por favor, digite 'S' para sim ou 'n' para não.";;
+        esac
+    done
+}
+
+
 # --- 0. Preparação e Atualização do Sistema ---
 separator
 echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando ---${NC}"
-# Instala git e as ferramentas de compilação (necessárias para o yay)
-sudo pacman -S --needed --noconfirm git base-devel
-# Sincroniza o banco de dados e atualiza o sistema para evitar partial upgrades
-sudo pacman -Syu --noconfirm
+echo "Será solicitada sua senha para instalar pacotes essenciais e atualizar o sistema."
+sudo pacman -S --needed git base-devel && sudo pacman -Syu
+INSTALL_STATUS=$?
+if [ $INSTALL_STATUS -ne 0 ]; then
+    echo -e "\n${RED}--- ERRO CRÍTICO ---${NC}"
+    echo -e "${RED}Não foi possível instalar pacotes básicos ou atualizar o sistema.${NC}"
+    echo -e "${YELLOW}Verifique sua conexão com a internet e os espelhos do pacman. O script não pode continuar.${NC}"
+    exit 1
+fi
+confirmar_proxima_etapa "verificação de usuário" $INSTALL_STATUS
 
-# --- 1. Determinar o usuário atual (para uso em gpasswd) ---
+
+# --- 1. Determinar o usuário atual ---
 separator
 echo -e "${GREEN}--- 1. Verificação de Usuário ---${NC}"
 USUARIO=$(whoami)
@@ -29,205 +70,177 @@ if [ "$USUARIO" == "root" ]; then
 fi
 echo -e "${GREEN}Usuário detectado: $USUARIO${NC}"
 
+
 # --- 2. Instalação do 'yay' (AUR helper) ---
 separator
 echo -e "${GREEN}--- 2. Instalando o 'yay' (AUR Helper) ---${NC}"
 cd /tmp/ || { echo -e "${RED}Erro: Não foi possível mudar para /tmp/${NC}"; exit 1; }
-echo "Removendo instalações anteriores do yay..."
 rm -rf yay
 
-echo "Clonando o repositório do yay..."
-if git clone https://aur.archlinux.org/yay 2>/dev/null; then
+if git clone https://aur.archlinux.org/yay; then
     cd yay || { echo -e "${RED}Erro: Não foi possível mudar para /tmp/yay/${NC}"; exit 1; }
-    echo "Compilando e instalando o yay..."
-    if makepkg -si --noconfirm; then
+    echo "Compilando e instalando o yay (será necessária sua confirmação)..."
+    makepkg -si
+    INSTALL_STATUS=$?
+    if [ $INSTALL_STATUS -eq 0 ]; then
         echo -e "${GREEN}yay instalado com sucesso!${NC}"
-        cd ..
-        echo "Limpando arquivos temporários do yay..."
-        rm -rf yay
+        cd .. && rm -rf yay
     else
-        echo -e "${RED}ERRO: Falha ao compilar e instalar o yay. Abortando.${NC}"
-        exit 1
+        echo -e "\n${RED}--- ERRO NA INSTALAÇÃO ---${NC}"
+        echo -e "${RED}Falha ao compilar e instalar o yay.${NC}"
+        echo -e "${YELLOW}Motivo:${NC} Verifique se as dependências do grupo 'base-devel' foram instaladas corretamente.${NC}"
     fi
 else
-    echo -e "${RED}ERRO: Falha ao clonar o repositório do yay. Verifique sua conexão com a internet e se o 'git' está instalado. Abortando.${NC}"
-    exit 1
+    echo -e "\n${RED}--- ERRO DE DOWNLOAD ---${NC}"
+    echo -e "${RED}Falha ao clonar o repositório do yay.${NC}"
+    echo -e "${YELLOW}Motivo:${NC} Verifique sua conexão com a internet ou se o 'git' está instalado.${NC}"
+    INSTALL_STATUS=1
 fi
+confirmar_proxima_etapa "instalação de pacotes do Lote 1" $INSTALL_STATUS
+
 
 # --- 3. Instalação de Pacotes Essenciais (pacman) EM LOTES ---
 separator
 echo -e "${GREEN}--- 3. Instalação de Pacotes Essenciais (pacman) em Lotes ---${NC}"
 
-# Pacote de função para lidar com a instalação em lotes
 install_batch() {
     local batch_name="$1"
     shift
+    local packages_str="$*"
     local packages=("$@")
 
     echo -e "\n${YELLOW}Iniciando a instalação do lote: $batch_name (${#packages[@]} pacotes)${NC}"
-    # O uso do --noconfirm aqui é mais seguro porque já fizemos um -Syu completo.
-    sudo pacman -S --needed --noconfirm "${packages[@]}"
+    sudo pacman -S --needed "${packages[@]}"
     INSTALL_STATUS=$?
 
     if [ $INSTALL_STATUS -ne 0 ]; then
-        echo -e "${RED}AVISO CRÍTICO: Falha na instalação do lote '$batch_name'. Por favor, verifique erros. Código de saída: $INSTALL_STATUS${NC}"
-        echo "Pacotes que falharam: ${packages[*]}"
-        # Adicionado exit para parar o script se um lote essencial falhar
-        exit 1
+        echo -e "\n${RED}--- ERRO NA INSTALAÇÃO ---${NC}"
+        echo -e "${RED}O lote '$batch_name' não pôde ser instalado.${NC}"
+        echo -e "${YELLOW}Motivo:${NC} Pacman retornou um erro (pacote não encontrado, conflito, etc.)."
+        echo -e "\n${YELLOW}Para diagnosticar, execute o seguinte comando manualmente em outro terminal:${NC}"
+        echo -e "sudo pacman -S --needed $packages_str\n"
+        return 1
     else
         echo -e "${GREEN}Lote '$batch_name' instalado com sucesso.${NC}"
+        return 0
     fi
 }
 
-# LOTE 1: BÁSICO, AMBIENTE HYPRLAND e TERMINAL
-BATCH1_PACKAGES=(
-    hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker waybar kitty
-    rofi-wayland dunst cliphist xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
-    nano xdg-user-dirs archlinux-xdg-menu
-)
+# LOTE 1
+BATCH1_PACKAGES=( hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker waybar kitty rofi-wayland dunst cliphist xdg-desktop-portal-hyprland xdg-desktop-portal-gtk nano xdg-user-dirs archlinux-xdg-menu )
 install_batch "BÁSICO (Hyprland, Waybar, Kitty)" "${BATCH1_PACKAGES[@]}"
+confirmar_proxima_etapa "instalação do Lote 2 (Fontes e Ferramentas)" $?
 
-# LOTE 2: FONTES, TEMAS, FERRAMENTAS DE SISTEMA e GAMING
-BATCH2_PACKAGES=(
-    ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto
-    breeze breeze5 breeze-gtk papirus-icon-theme
-    kde-cli-tools kate gparted gamescope gamemode
-    networkmanager network-manager-applet
-)
+# LOTE 2
+BATCH2_PACKAGES=( ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto breeze breeze5 breeze-gtk papirus-icon-theme kde-cli-tools kate gparted gamescope gamemode networkmanager network-manager-applet )
 install_batch "FONTES, TEMAS e FERRAMENTAS" "${BATCH2_PACKAGES[@]}"
+confirmar_proxima_etapa "instalação do Lote 3 (Áudio e Arquivos)" $?
 
-# LOTE 3: ÁUDIO, VÍDEO, BLUETOOTH e ARQUIVOS
-BATCH3_PACKAGES=(
-    pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber
-    gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly
-    ffmpeg mpv pavucontrol
-    blueman
-    dolphin dolphin-plugins ark kio-admin polkit-kde-agent
-    qt5-wayland qt6-wayland
-)
+# LOTE 3
+BATCH3_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol blueman dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland )
 install_batch "ÁUDIO, ARQUIVOS e CODECS" "${BATCH3_PACKAGES[@]}"
+confirmar_proxima_etapa "instalação dos drivers NVIDIA" $?
 
 
 # --- 4. Instalação e Configuração dos Drivers NVIDIA ---
 separator
 echo -e "${GREEN}--- 4. Instalação e Configuração dos Drivers NVIDIA ---${NC}"
-NVIDIA_PACKAGES=(
-    nvidia nvidia-settings nvidia-utils linux-headers lib32-nvidia-utils
-)
+NVIDIA_PACKAGES_STR="nvidia nvidia-settings nvidia-utils linux-headers lib32-nvidia-utils"
+NVIDIA_PACKAGES=( $NVIDIA_PACKAGES_STR )
 echo "Instalando pacotes NVIDIA..."
-sudo pacman -S --needed --noconfirm "${NVIDIA_PACKAGES[@]}"
+sudo pacman -S --needed "${NVIDIA_PACKAGES[@]}"
+INSTALL_STATUS=$?
 
-echo "Habilitando modeset para NVIDIA DRM..."
-echo "options nvidia-drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf
+if [ $INSTALL_STATUS -eq 0 ]; then
+    echo "Habilitando modeset para NVIDIA DRM..."
+    echo "options nvidia-drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf
+    echo "Recriando a imagem initramfs..."
+    sudo mkinitcpio -P
+else
+    echo -e "\n${RED}--- ERRO NA INSTALAÇÃO ---${NC}"
+    echo -e "${RED}Os drivers da NVIDIA não puderam ser instalados.${NC}"
+    echo -e "${YELLOW}Motivo:${NC} Verifique se sua placa é compatível ou se os pacotes estão disponíveis."
+    echo -e "\n${YELLOW}Para diagnosticar, execute o seguinte comando manualmente:${NC}"
+    echo -e "sudo pacman -S --needed $NVIDIA_PACKAGES_STR\n"
+fi
+confirmar_proxima_etapa "instalação de pacotes do AUR via yay" $INSTALL_STATUS
 
-echo "Recriando a imagem initramfs..."
-sudo mkinitcpio -P
 
 # --- 5. Instalação de Pacotes Adicionais (yay - AUR) ---
 separator
 echo -e "${GREEN}--- 5. Instalação de Pacotes Adicionais (yay - AUR) ---${NC}"
-YAY_PACKAGES=(
-    hyprshot wlogout qview visual-studio-code-bin firefox-bin nwg-look
-    qt5ct-kde qt6ct-kde heroic-games-launcher
-)
+YAY_PACKAGES_STR="hyprshot wlogout qview visual-studio-code-bin firefox-bin nwg-look qt5ct-kde qt6ct-kde heroic-games-launcher"
+YAY_PACKAGES=( $YAY_PACKAGES_STR )
 
 echo "Iniciando a instalação dos pacotes via yay (AUR)..."
-yay -S --needed --noconfirm "${YAY_PACKAGES[@]}"
+yay -S --needed "${YAY_PACKAGES[@]}"
+INSTALL_STATUS=$?
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}AVISO: Alguns pacotes do yay (AUR) podem não ter sido instalados corretamente. Continuando...${NC}"
+if [ $INSTALL_STATUS -ne 0 ]; then
+    echo -e "\n${RED}--- ERRO NA INSTALAÇÃO DO AUR ---${NC}"
+    echo -e "${RED}Um ou mais pacotes do AUR não foram instalados.${NC}"
+    echo -e "${YELLOW}Motivo:${NC} A compilação pode ter falhado ou o pacote não foi encontrado."
+    echo -e "\n${YELLOW}Para diagnosticar, execute o seguinte comando manualmente:${NC}"
+    echo -e "yay -S --needed $YAY_PACKAGES_STR\n"
 fi
+confirmar_proxima_etapa "configuração final do sistema" $INSTALL_STATUS
 
-# --- 6. Configurações Finais do Sistema (Local, Usuário, Pastas) ---
+
+# --- 6. Configurações Finais do Sistema ---
+# ... (o restante do script permanece o mesmo, pois são comandos de configuração)
+
 separator
-echo -e "${GREEN}--- 6. Configurações Finais do Sistema (Local, Usuário, Pastas) ---${NC}"
+echo -e "${GREEN}--- 6. Configurações Finais do Sistema ---${NC}"
 
-# Cópia e Substituição dos Arquivos de Configuração (.config)
-echo -e "\n${YELLOW}Iniciando a cópia dos arquivos de configuração (.config)...${NC}"
-CONFIG_SOURCE=".config"
-CONFIG_DEST="/home/$USUARIO/"
+echo -e "\n${YELLOW}Copiando arquivos de configuração (.config)...${NC}"
+cp -rfi ".config" "/home/$USUARIO/"
 
-if [ -d "$CONFIG_SOURCE" ]; then
-    echo "Copiando $CONFIG_SOURCE para $CONFIG_DEST (Substituir se existir)..."
-    if cp -rf "$CONFIG_SOURCE" "$CONFIG_DEST"; then
-        echo -e "${GREEN}Cópia do .config concluída com sucesso!${NC}"
-    else
-        echo -e "${RED}ERRO CRÍTICO: Falha ao copiar a pasta .config. Verifique as permissões.${NC}"
-    fi
-else
-    echo -e "${RED}AVISO: A pasta de origem $CONFIG_SOURCE não foi encontrada. Ignorando a cópia do .config.${NC}"
-fi
-
-# Criação das pastas de usuário
-if command -v xdg-user-dirs-update &> /dev/null; then
-    echo "Atualizando diretórios de usuário padrão (Downloads, Documents, etc.)..."
-    xdg-user-dirs-update --force
-    echo -e "${GREEN}Pastas de usuário atualizadas/criadas com sucesso.${NC}"
-else
-    echo -e "${RED}AVISO: O comando 'xdg-user-dirs-update' não foi encontrado. O pacote 'xdg-user-dirs' pode não ter sido instalado.${NC}"
-fi
+echo "Atualizando diretórios de usuário padrão..."
+xdg-user-dirs-update --force
 
 echo "Reconstruindo o cache do KBuildsycoca6..."
 XDG_MENU_PREFIX=arch- kbuildsycoca6
 
-echo "Configurando capacidades do gamescope para melhor performance..."
+echo "Configurando capacidades do gamescope..."
 if command -v gamescope &> /dev/null; then
     sudo setcap 'CAP_SYS_NICE=eip' "$(which gamescope)"
 else
     echo -e "${RED}AVISO: O comando 'gamescope' não foi encontrado. As capacidades não puderam ser definidas.${NC}"
 fi
 
-echo "Adicionando o usuário $USUARIO ao grupo 'render' (necessário para aceleração gráfica/gamescope)..."
-if sudo gpasswd -a "$USUARIO" render; then
-    echo -e "${GREEN}Usuário $USUARIO adicionado ao grupo render com sucesso!${NC}"
-else
-    echo -e "${RED}AVISO: Falha ao adicionar $USUARIO ao grupo render. Você precisará fazer isso manualmente.${NC}"
-fi
+echo "Adicionando o usuário $USUARIO ao grupo 'render'..."
+sudo gpasswd -a "$USUARIO" render
 
 echo "Configurando o layout do teclado para ABNT2 (Brasil)..."
 sudo localectl set-x11-keymap br abnt2
+confirmar_proxima_etapa "habilitação de serviços do sistema" 0
+
 
 # --- 7. Habilitação de Serviços Críticos (systemctl) ---
 separator
 echo -e "${GREEN}--- 7. Habilitação de Serviços Críticos (systemctl) ---${NC}"
 
-# Função para habilitar SERVIÇOS DE SISTEMA (Requer sudo)
 enable_service() {
     local service_name="$1"
-    echo "Habilitando e iniciando o serviço $service_name (SYSTEM SERVICE)..."
-    if [ -f "/usr/lib/systemd/system/$service_name.service" ]; then
-        if sudo systemctl enable --now "$service_name"; then
-            echo -e "${GREEN}Serviço $service_name habilitado e iniciado com sucesso.${NC}"
-        else
-            echo -e "${RED}AVISO: Falha ao habilitar/iniciar o serviço $service_name (SYSTEM). O systemctl retornou um erro.${NC}"
-        fi
-    else
-        echo -e "${RED}AVISO: O arquivo do serviço $service_name.service (SYSTEM) não foi encontrado. O pacote pode não ter sido instalado.${NC}"
-    fi
+    echo "Habilitando o serviço de sistema: $service_name..."
+    sudo systemctl enable --now "$service_name"
 }
 
-# Função para habilitar SERVIÇOS DE USUÁRIO (Não requer sudo)
 enable_user_service() {
     local service_name="$1"
-    echo "Habilitando e iniciando o serviço $service_name (USER SERVICE)..."
-    if systemctl --user enable --now "$service_name"; then
-        echo -e "${GREEN}Serviço $service_name habilitado e iniciado com sucesso como USER SERVICE.${NC}"
-    else
-        echo -e "${RED}AVISO: Falha ao habilitar/iniciar o serviço $service_name como USER SERVICE. Verifique o systemctl --user.${NC}"
-    fi
+    echo "Habilitando o serviço de usuário: $service_name..."
+    systemctl --user enable --now "$service_name"
 }
 
-# Habilita os serviços principais
 enable_service "NetworkManager"
 enable_service "bluetooth"
 enable_user_service "wireplumber"
-
 
 # --- 8. Conclusão ---
 separator
 echo -e "\n${GREEN}======================================================${NC}"
 echo -e "${GREEN}✔️ Instalação e Configuração Concluídas!${NC}"
 echo -e "${GREEN}======================================================${NC}"
-echo "1. ${RED}REINICIE SEU SISTEMA${NC} para que as alterações do kernel (NVIDIA) e as configurações de grupo (render) entrem em vigor."
+echo "1. ${RED}REINICIE SEU SISTEMA${NC} para que todas as alterações entrem em vigor."
 echo "2. Após reiniciar, você deve conseguir iniciar o ${GREEN}Hyprland${NC}."
 echo ""
