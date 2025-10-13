@@ -1,9 +1,0 @@
-[Added Associations]
-application/x-shellscript=code.desktop;
-text/plain=code.desktop;
-text/x-csrc=code.desktop;
-
-[Default Applications]
-application/x-shellscript=code.desktop;
-text/plain=code.desktop;
-text/x-csrc=code.desktop;

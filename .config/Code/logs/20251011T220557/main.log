@@ -1,5 +1,0 @@
-2025-10-11 22:05:57.241 [error] Invalid path provided: /home/jonathan/Script, ENOENT: no such file or directory, stat '/home/jonathan/Script'
-2025-10-11 22:05:57.241 [info] update#setState idle
-2025-10-11 22:06:27.240 [info] update#setState checking for updates
-2025-10-11 22:06:27.424 [info] update#setState idle
-2025-10-11 22:06:52.029 [info] Extension host with pid 18640 exited with code: 0, signal: unknown.

@@ -1,6 +1,0 @@
-2025-10-11 22:03:44.337 [info] Started local extension host with pid 18171.
-2025-10-11 22:03:44.658 [info] MCP Registry configured: https://api.mcp.github.com/2025-09-15
-2025-10-11 22:03:44.681 [info] Settings Sync: Account status changed from uninitialized to unavailable
-2025-10-11 22:03:46.863 [info] [perf] Render performance baseline is 15ms
-2025-10-11 22:05:47.332 [warning] [File Watcher ('parcel')] Watcher shutdown because watched path got deleted (path: /home/jonathan/Script)
-2025-10-11 22:05:53.669 [warning] [backup tracker] suspended, ignoring unregister event file:///home/jonathan/Script/.git/COMMIT_EDITMSG 
