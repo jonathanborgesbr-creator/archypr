@@ -11,6 +11,14 @@ separator() {
     echo -e "\n${YELLOW}------------------------------------------------------${NC}"
 }
 
+# --- 0. Preparação e Atualização do Sistema ---
+separator
+echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando ---${NC}"
+# Instala git e as ferramentas de compilação (necessárias para o yay)
+sudo pacman -S --needed --noconfirm git base-devel
+# Sincroniza o banco de dados e atualiza o sistema para evitar partial upgrades
+sudo pacman -Syu --noconfirm
+
 # --- 1. Determinar o usuário atual (para uso em gpasswd) ---
 separator
 echo -e "${GREEN}--- 1. Verificação de Usuário ---${NC}"
@@ -50,9 +58,6 @@ fi
 separator
 echo -e "${GREEN}--- 3. Instalação de Pacotes Essenciais (pacman) em Lotes ---${NC}"
 
-echo "Sincronizando bancos de dados do pacman..."
-sudo pacman -Sy --noconfirm
-
 # Pacote de função para lidar com a instalação em lotes
 install_batch() {
     local batch_name="$1"
@@ -60,12 +65,15 @@ install_batch() {
     local packages=("$@")
 
     echo -e "\n${YELLOW}Iniciando a instalação do lote: $batch_name (${#packages[@]} pacotes)${NC}"
+    # O uso do --noconfirm aqui é mais seguro porque já fizemos um -Syu completo.
     sudo pacman -S --needed --noconfirm "${packages[@]}"
     INSTALL_STATUS=$?
 
     if [ $INSTALL_STATUS -ne 0 ]; then
         echo -e "${RED}AVISO CRÍTICO: Falha na instalação do lote '$batch_name'. Por favor, verifique erros. Código de saída: $INSTALL_STATUS${NC}"
         echo "Pacotes que falharam: ${packages[*]}"
+        # Adicionado exit para parar o script se um lote essencial falhar
+        exit 1
     else
         echo -e "${GREEN}Lote '$batch_name' instalado com sucesso.${NC}"
     fi
@@ -134,15 +142,12 @@ fi
 separator
 echo -e "${GREEN}--- 6. Configurações Finais do Sistema (Local, Usuário, Pastas) ---${NC}"
 
-# 🌟 NOVO PASSO: Cópia e Substituição dos Arquivos de Configuração (.config) 🌟
+# Cópia e Substituição dos Arquivos de Configuração (.config)
 echo -e "\n${YELLOW}Iniciando a cópia dos arquivos de configuração (.config)...${NC}"
-# Assumindo que o script 'vf.sh' está em 'archypr' e a pasta '.config' está em 'archypr'
 CONFIG_SOURCE=".config"
 CONFIG_DEST="/home/$USUARIO/"
 
 if [ -d "$CONFIG_SOURCE" ]; then
-    # O comando 'cp -rf' copia recursivamente e força a substituição se o destino existir.
-    # Copia a pasta .config e seu conteúdo para /home/USUARIO/, substituindo o que estiver lá.
     echo "Copiando $CONFIG_SOURCE para $CONFIG_DEST (Substituir se existir)..."
     if cp -rf "$CONFIG_SOURCE" "$CONFIG_DEST"; then
         echo -e "${GREEN}Cópia do .config concluída com sucesso!${NC}"
@@ -152,7 +157,6 @@ if [ -d "$CONFIG_SOURCE" ]; then
 else
     echo -e "${RED}AVISO: A pasta de origem $CONFIG_SOURCE não foi encontrada. Ignorando a cópia do .config.${NC}"
 fi
-# FIM DO NOVO PASSO 🌟
 
 # Criação das pastas de usuário
 if command -v xdg-user-dirs-update &> /dev/null; then
@@ -168,13 +172,13 @@ XDG_MENU_PREFIX=arch- kbuildsycoca6
 
 echo "Configurando capacidades do gamescope para melhor performance..."
 if command -v gamescope &> /dev/null; then
-    sudo setcap 'CAP_SYS_NICE=eip' $(which gamescope)
+    sudo setcap 'CAP_SYS_NICE=eip' "$(which gamescope)"
 else
     echo -e "${RED}AVISO: O comando 'gamescope' não foi encontrado. As capacidades não puderam ser definidas.${NC}"
 fi
 
 echo "Adicionando o usuário $USUARIO ao grupo 'render' (necessário para aceleração gráfica/gamescope)..."
-if sudo gpasswd -a $USUARIO render; then
+if sudo gpasswd -a "$USUARIO" render; then
     echo -e "${GREEN}Usuário $USUARIO adicionado ao grupo render com sucesso!${NC}"
 else
     echo -e "${RED}AVISO: Falha ao adicionar $USUARIO ao grupo render. Você precisará fazer isso manualmente.${NC}"
