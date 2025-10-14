@@ -16,9 +16,10 @@ separator() {
 
 # --- 0. Preparação e Atualização do Sistema ---
 separator
-echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando ---${NC}"
-echo "Será solicitada sua senha para instalar pacotes essenciais e atualizar o sistema."
-sudo pacman -S --needed git base-devel && sudo pacman -Syu
+echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando (Automático) ---${NC}"
+echo "Será solicitada sua senha para instalar pacotes essenciais e atualizar o sistema. A instalação será automática (--noconfirm)."
+# Adicionado --noconfirm para pacman -Syu
+sudo pacman -S --needed --noconfirm git base-devel && sudo pacman -Syu --noconfirm
 INSTALL_STATUS=$?
 if [ $INSTALL_STATUS -ne 0 ]; then
     echo -e "\n${RED}--- ERRO CRÍTICO ---${NC}"
@@ -51,14 +52,15 @@ fi
 
 # --- 2. Instalação do 'yay' (AUR helper) ---
 separator
-echo -e "${GREEN}--- 2. Instalando o 'yay' (AUR Helper) ---${NC}"
+echo -e "${GREEN}--- 2. Instalando o 'yay' (AUR Helper) (Automático) ---${NC}"
 cd /tmp/ || { echo -e "${RED}Erro: Não foi possível mudar para /tmp/${NC}"; exit 1; }
 rm -rf yay
 
 if git clone https://aur.archlinux.org/yay; then
     cd yay || { echo -e "${RED}Erro: Não foi possível mudar para /tmp/yay/${NC}"; exit 1; }
-    echo "Compilando e instalando o yay (será necessária sua confirmação)..."
-    makepkg -si
+    echo "Compilando e instalando o yay (será automática com --noconfirm)..."
+    # Adicionado --noconfirm ao makepkg -si
+    makepkg -si --noconfirm
     INSTALL_STATUS=$?
     if [ $INSTALL_STATUS -eq 0 ]; then
         echo -e "${GREEN}yay instalado com sucesso!${NC}"
@@ -79,7 +81,7 @@ echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver fa
 
 # --- 3. Instalação de Pacotes Essenciais (pacman) EM LOTES ---
 separator
-echo -e "${GREEN}--- 3. Instalação de Pacotes Essenciais (pacman) em Lotes ---${NC}"
+echo -e "${GREEN}--- 3. Instalação de Pacotes Essenciais (pacman) em Lotes (Automático) ---${NC}"
 
 install_batch() {
     local batch_name="$1"
@@ -88,7 +90,8 @@ install_batch() {
     local packages=("$@")
 
     echo -e "\n${YELLOW}Iniciando a instalação do lote: $batch_name (${#packages[@]} pacotes)${NC}"
-    sudo pacman -S --needed "${packages[@]}"
+    # Adicionado --noconfirm para pacman -S
+    sudo pacman -S --needed --noconfirm "${packages[@]}"
     INSTALL_STATUS=$?
 
     if [ $INSTALL_STATUS -ne 0 ]; then
@@ -109,24 +112,25 @@ BATCH1_PACKAGES=( hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker way
 install_batch "BÁSICO (Hyprland, Waybar, Kitty)" "${BATCH1_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
-# LOTE 2
-BATCH2_PACKAGES=( ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto breeze breeze5 breeze-gtk papirus-icon-theme kde-cli-tools kate gparted gamescope gamemode networkmanager network-manager-applet )
+# LOTE 2 (Rede e Bluetooth removidos)
+BATCH2_PACKAGES=( ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto breeze breeze5 breeze-gtk papirus-icon-theme kde-cli-tools kate gparted gamescope gamemode )
 install_batch "FONTES, TEMAS e FERRAMENTAS" "${BATCH2_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
-# LOTE 3
-BATCH3_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol blueman dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland )
+# LOTE 3 (Bluetooth removido)
+BATCH3_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland )
 install_batch "ÁUDIO, ARQUIVOS e CODECS" "${BATCH3_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 
 # --- 4. Instalação e Configuração dos Drivers NVIDIA ---
 separator
-echo -e "${GREEN}--- 4. Instalação e Configuração dos Drivers NVIDIA ---${NC}"
+echo -e "${GREEN}--- 4. Instalação e Configuração dos Drivers NVIDIA (Automático) ---${NC}"
 NVIDIA_PACKAGES_STR="nvidia nvidia-settings nvidia-utils linux-headers lib32-nvidia-utils"
 NVIDIA_PACKAGES=( $NVIDIA_PACKAGES_STR )
-echo "Instalando pacotes NVIDIA..."
-sudo pacman -S --needed "${NVIDIA_PACKAGES[@]}"
+echo "Instalando pacotes NVIDIA (Automático)..."
+# Adicionado --noconfirm para pacman -S
+sudo pacman -S --needed --noconfirm "${NVIDIA_PACKAGES[@]}"
 INSTALL_STATUS=$?
 
 if [ $INSTALL_STATUS -eq 0 ]; then
@@ -146,12 +150,13 @@ echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver fa
 
 # --- 5. Instalação de Pacotes Adicionais (yay - AUR) ---
 separator
-echo -e "${GREEN}--- 5. Instalação de Pacotes Adicionais (yay - AUR) ---${NC}"
+echo -e "${GREEN}--- 5. Instalação de Pacotes Adicionais (yay - AUR) (Automático) ---${NC}"
 YAY_PACKAGES_STR="hyprshot wlogout qview visual-studio-code-bin nwg-look qt5ct-kde qt6ct-kde heroic-games-launcher"
 YAY_PACKAGES=( $YAY_PACKAGES_STR )
 
-echo "Iniciando a instalação dos pacotes via yay (AUR)..."
-yay -S --needed "${YAY_PACKAGES[@]}"
+echo "Iniciando a instalação dos pacotes via yay (AUR) (Automático)..."
+# Adicionado --noconfirm para yay -S
+yay -S --needed --noconfirm "${YAY_PACKAGES[@]}"
 INSTALL_STATUS=$?
 
 if [ $INSTALL_STATUS -ne 0 ]; then
@@ -170,7 +175,6 @@ echo -e "${GREEN}--- 6. Configurações Finais do Sistema ---${NC}"
 
 # REFORÇO: Etapa para garantir a criação inicial das pastas XDG antes da cópia de configs
 echo "Garantindo que as pastas de usuário (Documentos, Downloads, etc.) existam..."
-# A execução no script é confiável porque o pacote 'xdg-user-dirs' já foi instalado no Lote 1.
 xdg-user-dirs-update --force
 XDG_DIRS_STATUS=$?
 if [ $XDG_DIRS_STATUS -ne 0 ]; then
@@ -250,8 +254,8 @@ enable_user_service() {
     systemctl --user enable --now "$service_name"
 }
 
-enable_service "NetworkManager"
-enable_service "bluetooth"
+# NetworkManager e Bluetooth foram removidos na seção anterior.
+
 enable_user_service "wireplumber"
 
 
