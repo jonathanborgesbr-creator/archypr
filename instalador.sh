@@ -14,40 +14,6 @@ separator() {
     echo -e "\n${YELLOW}------------------------------------------------------${NC}"
 }
 
-# --- NOVA FUNÇÃO: Pausa para confirmação do usuário com tratamento de erro ---
-confirmar_proxima_etapa() {
-    local proxima_acao="$1"
-    local status_anterior=$2
-
-    # Se a etapa anterior falhou
-    if [ "$status_anterior" -ne 0 ]; then
-        echo -e "\n${YELLOW}A etapa anterior encontrou um erro. Status: $status_anterior${NC}"
-        while true; do
-            read -p "Deseja ignorar este erro e continuar para a ${proxima_acao}? (s/N): " resposta
-            resposta=${resposta:-N} # Padrão é 'Não'
-            case $resposta in
-                [Ss]* ) echo -e "${YELLOW}Continuando, mas o sistema pode ficar em um estado inconsistente.${NC}"; return 0;;
-                [Nn]* ) echo -e "\n${RED}Operação abortada pelo usuário devido a erro anterior.${NC}"; exit 1;;
-                * ) echo "Resposta inválida. Por favor, digite 's' para sim ou 'N' para não.";;
-            esac
-        done
-    fi
-    
-    # Se a etapa anterior foi bem-sucedida
-    echo -e "\n${GREEN}Etapa anterior concluída com êxito.${NC}"
-    
-    while true; do
-        read -p "Deseja prosseguir para a ${proxima_acao}? (S/n): " resposta
-        resposta=${resposta:-S} # Padrão é 'Sim'
-        case $resposta in
-            [Ss]* ) return 0;; # Continua
-            [Nn]* ) echo -e "\n${RED}Operação abortada pelo usuário.${NC}"; exit 0;;
-            * ) echo "Resposta inválida. Por favor, digite 'S' para sim ou 'n' para não.";;
-        esac
-    done
-}
-
-
 # --- 0. Preparação e Atualização do Sistema ---
 separator
 echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando ---${NC}"
@@ -60,8 +26,7 @@ if [ $INSTALL_STATUS -ne 0 ]; then
     echo -e "${YELLOW}Verifique sua conexão com a internet e os espelhos do pacman. O script não pode continuar.${NC}"
     exit 1
 fi
-confirmar_proxima_etapa "verificação de usuário" $INSTALL_STATUS
-
+echo -e "${GREEN}Etapa anterior concluída com êxito.${NC}"
 
 # --- 1. Determinar o usuário atual e Variáveis de Diretório ---
 separator
@@ -83,7 +48,6 @@ if [ ! -d "$CONFIG_ORIGEM" ]; then
     echo -e "${RED}Verifique se o script está sendo executado no diretório correto.${NC}"
     exit 1
 fi
-
 
 # --- 2. Instalação do 'yay' (AUR helper) ---
 separator
@@ -110,7 +74,7 @@ else
     echo -e "${YELLOW}Motivo:${NC} Verifique sua conexão com a internet ou se o 'git' está instalado.${NC}"
     INSTALL_STATUS=1
 fi
-confirmar_proxima_etapa "instalação de pacotes do Lote 1" $INSTALL_STATUS
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 
 # --- 3. Instalação de Pacotes Essenciais (pacman) EM LOTES ---
@@ -141,19 +105,19 @@ install_batch() {
 }
 
 # LOTE 1
-BATCH1_PACKAGES=( hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker waybar kitty rofi-wayland dunst cliphist xdg-desktop-portal-hyprland xdg-desktop-portal-gtk nano xdg-user-dirs archlinux-xdg-menu )
+BATCH1_PACKAGES=( hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker waybar kitty firefox rofi-wayland dunst cliphist xdg-desktop-portal-hyprland xdg-desktop-portal-gtk nano xdg-user-dirs archlinux-xdg-menu )
 install_batch "BÁSICO (Hyprland, Waybar, Kitty)" "${BATCH1_PACKAGES[@]}"
-confirmar_proxima_etapa "instalação do Lote 2 (Fontes e Ferramentas)" $?
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 # LOTE 2
 BATCH2_PACKAGES=( ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto breeze breeze5 breeze-gtk papirus-icon-theme kde-cli-tools kate gparted gamescope gamemode networkmanager network-manager-applet )
 install_batch "FONTES, TEMAS e FERRAMENTAS" "${BATCH2_PACKAGES[@]}"
-confirmar_proxima_etapa "instalação do Lote 3 (Áudio e Arquivos)" $?
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 # LOTE 3
 BATCH3_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol blueman dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland )
 install_batch "ÁUDIO, ARQUIVOS e CODECS" "${BATCH3_PACKAGES[@]}"
-confirmar_proxima_etapa "instalação dos drivers NVIDIA" $?
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 
 # --- 4. Instalação e Configuração dos Drivers NVIDIA ---
@@ -177,13 +141,13 @@ else
     echo -e "\n${YELLOW}Para diagnosticar, execute o seguinte comando manualmente:${NC}"
     echo -e "sudo pacman -S --needed $NVIDIA_PACKAGES_STR\n"
 fi
-confirmar_proxima_etapa "instalação de pacotes do AUR via yay" $INSTALL_STATUS
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 
 # --- 5. Instalação de Pacotes Adicionais (yay - AUR) ---
 separator
 echo -e "${GREEN}--- 5. Instalação de Pacotes Adicionais (yay - AUR) ---${NC}"
-YAY_PACKAGES_STR="hyprshot wlogout qview visual-studio-code-bin firefox-bin nwg-look qt5ct-kde qt6ct-kde heroic-games-launcher"
+YAY_PACKAGES_STR="hyprshot wlogout qview visual-studio-code-bin nwg-look qt5ct-kde qt6ct-kde heroic-games-launcher"
 YAY_PACKAGES=( $YAY_PACKAGES_STR )
 
 echo "Iniciando a instalação dos pacotes via yay (AUR)..."
@@ -197,7 +161,7 @@ if [ $INSTALL_STATUS -ne 0 ]; then
     echo -e "\n${YELLOW}Para diagnosticar, execute o seguinte comando manualmente:${NC}"
     echo -e "yay -S --needed $YAY_PACKAGES_STR\n"
 fi
-confirmar_proxima_etapa "configuração final do sistema" $INSTALL_STATUS
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 
 # --- 6. Configurações Finais do Sistema (Incluindo a Cópia de Configurações) ---
@@ -223,18 +187,11 @@ fi
 
 # Bloco de Cópia e Permissões (Integrado do script original)
 echo -e "\n${YELLOW}Copiando arquivos de configuração ($CONFIG_ORIGEM) para $HOME_DESTINO/ (Sobrescrevendo se existir)...${NC}"
-
-# Comando de cópia.
-# '\cp': Garante que nenhum alias (como 'cp -i') interfira.
-# '-r': Copia recursivamente.
-# '-f': Força a sobrescrita de arquivos existentes.
 \cp -rf "$CONFIG_ORIGEM" "$HOME_DESTINO/"
 COPY_STATUS=$?
 
 if [ $COPY_STATUS -ne 0 ]; then
     echo -e "${RED}ERRO: Falha ao copiar os arquivos de configuração.${NC}"
-    # Não interrompe, mas avisa e usa o mecanismo de confirmação
-    confirmar_proxima_etapa "próximos ajustes do sistema" $COPY_STATUS
 fi
 
 # Ajuste de Permissões
@@ -245,17 +202,11 @@ else
     # Se o script foi executado como root/sudo
     echo -e "\n${YELLOW}Permissões mantidas (Script executado como root).${NC}"
 fi
-
 echo -e "${GREEN}Configurações copiadas e sobrescritas com sucesso para $HOME_DESTINO/.config${NC}"
 
 
 # Restante das Configurações Finais
-
-# *************************************************************************
-# ALTERAÇÃO AQUI: Verificação de status do kbuildsycoca6
-# *************************************************************************
 echo "Reconstruindo o cache do KBuildsycoca6..."
-# Esta etapa é crucial para que o Dolphin (e outros aplicativos KDE) leia as novas configurações XDG
 XDG_MENU_PREFIX=arch- kbuildsycoca6
 KBUILD_STATUS=$?
 
@@ -267,7 +218,6 @@ else
     echo -e "${RED}Se as pastas não aparecerem no Dolphin após o reboot, execute-o manualmente em um terminal:${NC}"
     echo -e "${RED}XDG_MENU_PREFIX=arch- kbuildsycoca6${NC}"
 fi
-# *************************************************************************
 
 echo "Configurando capacidades do gamescope..."
 if command -v gamescope &> /dev/null; then
@@ -281,7 +231,7 @@ sudo gpasswd -a "$USUARIO" render
 
 echo "Configurando o layout do teclado para ABNT2 (Brasil)..."
 sudo localectl set-x11-keymap br abnt2
-confirmar_proxima_etapa "habilitação de serviços do sistema" 0
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
 
 
 # --- 7. Habilitação de Serviços Críticos (systemctl) ---
@@ -303,6 +253,7 @@ enable_user_service() {
 enable_service "NetworkManager"
 enable_service "bluetooth"
 enable_user_service "wireplumber"
+
 
 # --- 8. Conclusão ---
 separator
