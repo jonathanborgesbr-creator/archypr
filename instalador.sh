@@ -14,6 +14,18 @@ separator() {
     echo -e "\n${YELLOW}------------------------------------------------------${NC}"
 }
 
+# Função de confirmação para a próxima etapa
+confirm_next() {
+    echo -e "\n${YELLOW}------------------------------------------------------${NC}"
+    read -p "Etapa concluída. Deseja ir para a próxima etapa? (S/n) " -n 1 -r
+    echo    # Move para a próxima linha
+    if [[ ! $REPLY =~ ^[Ss]$ ]] && [[ ! -z $REPLY ]]; then
+        echo -e "\n${RED}Encerrando o script a pedido do usuário.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}Continuando...${NC}"
+}
+
 # --- 0. Preparação e Atualização do Sistema ---
 separator
 echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando (Automático) ---${NC}"
@@ -28,6 +40,7 @@ if [ $INSTALL_STATUS -ne 0 ]; then
     exit 1
 fi
 echo -e "${GREEN}Etapa anterior concluída com êxito.${NC}"
+confirm_next
 
 # --- 1. Determinar o usuário atual e Variáveis de Diretório ---
 separator
@@ -49,6 +62,7 @@ if [ ! -d "$CONFIG_ORIGEM" ]; then
     echo -e "${RED}Verifique se o script está sendo executado no diretório correto.${NC}"
     exit 1
 fi
+confirm_next
 
 # --- 2. Instalação do 'yay' (AUR helper) ---
 separator
@@ -77,6 +91,7 @@ else
     INSTALL_STATUS=1
 fi
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+confirm_next
 
 
 # --- 3. Instalação de Pacotes Essenciais (pacman) EM LOTES ---
@@ -111,16 +126,25 @@ install_batch() {
 BATCH1_PACKAGES=( hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker waybar kitty firefox rofi-wayland dunst cliphist xdg-desktop-portal-hyprland xdg-desktop-portal-gtk nano xdg-user-dirs archlinux-xdg-menu )
 install_batch "BÁSICO (Hyprland, Waybar, Kitty)" "${BATCH1_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+confirm_next
 
-# LOTE 2 (Rede e Bluetooth removidos)
-BATCH2_PACKAGES=( ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto breeze breeze5 breeze-gtk papirus-icon-theme kde-cli-tools kate gparted gamescope gamemode )
-install_batch "FONTES, TEMAS e FERRAMENTAS" "${BATCH2_PACKAGES[@]}"
-echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+# LOTE 2 (Rede e Bluetooth)
+BATCH2_PACKAGES=( networkmanager bluez bluez-utils blueman )
+install_batch "REDE e BLUETOOTH" "${BATCH2_PACKAGES[@]}"
+echo -e "${GREEN}Continuando para a próxima etapa...${NC}"
+confirm_next
 
-# LOTE 3 (Bluetooth removido)
-BATCH3_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland )
-install_batch "ÁUDIO, ARQUIVOS e CODECS" "${BATCH3_PACKAGES[@]}"
+# LOTE 3
+BATCH3_PACKAGES=( ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto breeze breeze5 breeze-gtk papirus-icon-theme kde-cli-tools kate gparted gamescope gamemode )
+install_batch "FONTES, TEMAS e FERRAMENTAS" "${BATCH3_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+confirm_next
+
+# LOTE 4
+BATCH4_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland )
+install_batch "ÁUDIO, ARQUIVOS e CODECS" "${BATCH4_PACKAGES[@]}"
+echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+confirm_next
 
 
 # --- 4. Instalação e Configuração dos Drivers NVIDIA ---
@@ -146,6 +170,7 @@ else
     echo -e "sudo pacman -S --needed $NVIDIA_PACKAGES_STR\n"
 fi
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+confirm_next
 
 
 # --- 5. Instalação de Pacotes Adicionais (yay - AUR) ---
@@ -167,6 +192,7 @@ if [ $INSTALL_STATUS -ne 0 ]; then
     echo -e "yay -S --needed $YAY_PACKAGES_STR\n"
 fi
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+confirm_next
 
 
 # --- 6. Configurações Finais do Sistema (Incluindo a Cópia de Configurações) ---
@@ -236,6 +262,7 @@ sudo gpasswd -a "$USUARIO" render
 echo "Configurando o layout do teclado para ABNT2 (Brasil)..."
 sudo localectl set-x11-keymap br abnt2
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
+confirm_next
 
 
 # --- 7. Habilitação de Serviços Críticos (systemctl) ---
@@ -254,10 +281,12 @@ enable_user_service() {
     systemctl --user enable --now "$service_name"
 }
 
-# NetworkManager e Bluetooth foram removidos na seção anterior.
-
+# Habilita NetworkManager e Bluetooth
+enable_service "NetworkManager"
+enable_service "bluetooth.service"
 enable_user_service "wireplumber"
 
+confirm_next
 
 # --- 8. Conclusão ---
 separator
