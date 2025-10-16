@@ -129,7 +129,7 @@ echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver fa
 confirm_next
 
 # LOTE 2 (Rede e Bluetooth)
-BATCH2_PACKAGES=( networkmanager bluez bluez-utils blueman )
+BATCH2_PACKAGES=( networkmanager bluez bluez-utils blueberry )
 install_batch "REDE e BLUETOOTH" "${BATCH2_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa...${NC}"
 confirm_next
