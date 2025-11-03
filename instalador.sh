@@ -14,18 +14,6 @@ separator() {
     echo -e "\n${YELLOW}------------------------------------------------------${NC}"
 }
 
-# Função de confirmação para a próxima etapa
-confirm_next() {
-    echo -e "\n${YELLOW}------------------------------------------------------${NC}"
-    read -p "Etapa concluída. Deseja ir para a próxima etapa? (S/n) " -n 1 -r
-    echo    # Move para a próxima linha
-    if [[ ! $REPLY =~ ^[Ss]$ ]] && [[ ! -z $REPLY ]]; then
-        echo -e "\n${RED}Encerrando o script a pedido do usuário.${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}Continuando...${NC}"
-}
-
 # --- 0. Preparação e Atualização do Sistema ---
 separator
 echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando (Automático) ---${NC}"
@@ -40,7 +28,6 @@ if [ $INSTALL_STATUS -ne 0 ]; then
     exit 1
 fi
 echo -e "${GREEN}Etapa anterior concluída com êxito.${NC}"
-confirm_next
 
 # --- 1. Determinar o usuário atual e Variáveis de Diretório ---
 separator
@@ -62,7 +49,6 @@ if [ ! -d "$CONFIG_ORIGEM" ]; then
     echo -e "${RED}Verifique se o script está sendo executado no diretório correto.${NC}"
     exit 1
 fi
-confirm_next
 
 # --- 2. Instalação do 'yay' (AUR helper) ---
 separator
@@ -91,7 +77,6 @@ else
     INSTALL_STATUS=1
 fi
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
-confirm_next
 
 
 # --- 3. Instalação de Pacotes Essenciais (pacman) EM LOTES ---
@@ -122,61 +107,52 @@ install_batch() {
     fi
 }
 
-# LOTE 1
-BATCH1_PACKAGES=( hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker waybar kitty firefox rofi-wayland dunst cliphist xdg-desktop-portal-hyprland xdg-desktop-portal-gtk nano xdg-user-dirs archlinux-xdg-menu )
+# LOTE 1 (MODIFICADO: 'firefox' removido)
+BATCH1_PACKAGES=( hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker waybar kitty rofi-wayland dunst cliphist xdg-desktop-portal-hyprland xdg-desktop-portal-gtk nano xdg-user-dirs archlinux-xdg-menu )
 install_batch "BÁSICO (Hyprland, Waybar, Kitty)" "${BATCH1_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
-confirm_next
 
 # LOTE 2 (Rede e Bluetooth)
 BATCH2_PACKAGES=( networkmanager bluez bluez-utils blueberry )
 install_batch "REDE e BLUETOOTH" "${BATCH2_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa...${NC}"
-confirm_next
 
 # LOTE 3
 BATCH3_PACKAGES=( ttf-font-awesome ttf-jetbrains-mono-nerd ttf-opensans ttf-dejavu noto-fonts ttf-roboto breeze breeze5 breeze-gtk papirus-icon-theme kde-cli-tools kate gparted gamescope gamemode )
 install_batch "FONTES, TEMAS e FERRAMENTAS" "${BATCH3_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
-confirm_next
 
 # LOTE 4
 BATCH4_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumber gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg mpv pavucontrol dolphin dolphin-plugins ark kio-admin polkit-kde-agent qt5-wayland qt6-wayland )
 install_batch "ÁUDIO, ARQUIVOS e CODECS" "${BATCH4_PACKAGES[@]}"
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
-confirm_next
 
 
-# --- 4. Instalação e Configuração dos Drivers NVIDIA ---
+# --- 4. Instalação dos Drivers Gráficos Open-Source (Mesa) ---
 separator
-echo -e "${GREEN}--- 4. Instalação e Configuração dos Drivers NVIDIA (Automático) ---${NC}"
-NVIDIA_PACKAGES_STR="nvidia nvidia-settings nvidia-utils linux-headers lib32-nvidia-utils"
-NVIDIA_PACKAGES=( $NVIDIA_PACKAGES_STR )
-echo "Instalando pacotes NVIDIA (Automático)..."
+echo -e "${GREEN}--- 4. Instalação dos Drivers Gráficos Open-Source (Mesa) (Automático) ---${NC}"
+MESA_PACKAGES_STR="mesa lib32-mesa vulkan-drivers lib32-vulkan-drivers libva-mesa-driver lib32-libva-mesa-driver"
+MESA_PACKAGES=( $MESA_PACKAGES_STR )
+echo "Instalando pacotes MESA (Intel, AMD, Nouveau) (Automático)..."
 # Adicionado --noconfirm para pacman -S
-sudo pacman -S --needed --noconfirm "${NVIDIA_PACKAGES[@]}"
+sudo pacman -S --needed --noconfirm "${MESA_PACKAGES[@]}"
 INSTALL_STATUS=$?
 
-if [ $INSTALL_STATUS -eq 0 ]; then
-    echo "Habilitando modeset para NVIDIA DRM..."
-    echo "options nvidia-drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf
-    echo "Recriando a imagem initramfs..."
-    sudo mkinitcpio -P
-else
+if [ $INSTALL_STATUS -ne 0 ]; then
     echo -e "\n${RED}--- ERRO NA INSTALAÇÃO ---${NC}"
-    echo -e "${RED}Os drivers da NVIDIA não puderam ser instalados.${NC}"
-    echo -e "${YELLOW}Motivo:${NC} Verifique se sua placa é compatível ou se os pacotes estão disponíveis."
+    echo -e "${RED}Os drivers MESA não puderam ser instalados.${NC}"
+    echo -e "${YELLOW}Motivo:${NC} Verifique sua conexão ou se os pacotes estão disponíveis."
     echo -e "\n${YELLOW}Para diagnosticar, execute o seguinte comando manualmente:${NC}"
-    echo -e "sudo pacman -S --needed $NVIDIA_PACKAGES_STR\n"
+    echo -e "sudo pacman -S --needed $MESA_PACKAGES_STR\n"
 fi
-echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
-confirm_next
+echo -e "${GREEN}Drivers MESA instalados. Continuando para a próxima etapa.${NC}"
 
 
 # --- 5. Instalação de Pacotes Adicionais (yay - AUR) ---
 separator
 echo -e "${GREEN}--- 5. Instalação de Pacotes Adicionais (yay - AUR) (Automático) ---${NC}"
-YAY_PACKAGES_STR="hyprshot wlogout qview visual-studio-code-bin nwg-look qt5ct-kde qt6ct-kde heroic-games-launcher"
+# MODIFICADO: 'visual-studio-code-bin' removido
+YAY_PACKAGES_STR="hyprshot wlogout qview nwg-look qt5ct-kde qt6ct-kde heroic-games-launcher"
 YAY_PACKAGES=( $YAY_PACKAGES_STR )
 
 echo "Iniciando a instalação dos pacotes via yay (AUR) (Automático)..."
@@ -192,7 +168,6 @@ if [ $INSTALL_STATUS -ne 0 ]; then
     echo -e "yay -S --needed $YAY_PACKAGES_STR\n"
 fi
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
-confirm_next
 
 
 # --- 6. Configurações Finais do Sistema (Incluindo a Cópia de Configurações) ---
@@ -262,7 +237,6 @@ sudo gpasswd -a "$USUARIO" render
 echo "Configurando o layout do teclado para ABNT2 (Brasil)..."
 sudo localectl set-x11-keymap br abnt2
 echo -e "${GREEN}Continuando para a próxima etapa, mesmo se a anterior tiver falhado.${NC}"
-confirm_next
 
 
 # --- 7. Habilitação de Serviços Críticos (systemctl) ---
@@ -286,7 +260,6 @@ enable_service "NetworkManager"
 enable_service "bluetooth.service"
 enable_user_service "wireplumber"
 
-confirm_next
 
 # --- 8. Conclusão ---
 separator
