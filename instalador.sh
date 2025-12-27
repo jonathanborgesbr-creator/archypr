@@ -47,7 +47,6 @@ confirmar_proxima_etapa() {
     done
 }
 
-
 # --- 0. Preparação e Atualização do Sistema ---
 separator
 echo -e "${GREEN}--- 0. Preparando o Sistema e Atualizando ---${NC}"
@@ -61,7 +60,6 @@ if [ $INSTALL_STATUS -ne 0 ]; then
     exit 1
 fi
 confirmar_proxima_etapa "verificação de usuário" $INSTALL_STATUS
-
 
 # --- 1. Determinar o usuário atual e Variáveis de Diretório ---
 separator
@@ -83,7 +81,6 @@ if [ ! -d "$CONFIG_ORIGEM" ]; then
     echo -e "${RED}Verifique se o script está sendo executado no diretório correto.${NC}"
     exit 1
 fi
-
 
 # --- 2. Instalação do 'yay' (AUR helper) ---
 separator
@@ -111,7 +108,6 @@ else
     INSTALL_STATUS=1
 fi
 confirmar_proxima_etapa "instalação de pacotes do Lote 1" $INSTALL_STATUS
-
 
 # --- 3. Instalação de Pacotes Essenciais (pacman) EM LOTES ---
 separator
@@ -155,30 +151,58 @@ BATCH3_PACKAGES=( pipewire pipewire-pulse pipewire-jack pipewire-alsa wireplumbe
 install_batch "ÁUDIO, ARQUIVOS e CODECS" "${BATCH3_PACKAGES[@]}"
 confirmar_proxima_etapa "instalação dos drivers NVIDIA" $?
 
-
-# --- 4. Instalação e Configuração dos Drivers NVIDIA ---
+# --- 4. Instalação e Configuração dos Drivers NVIDIA (ATUALIZADO 2025) ---
 separator
-echo -e "${GREEN}--- 4. Instalação e Configuração dos Drivers NVIDIA ---${NC}"
-NVIDIA_PACKAGES_STR="nvidia nvidia-settings nvidia-utils linux-headers lib32-nvidia-utils"
-NVIDIA_PACKAGES=( $NVIDIA_PACKAGES_STR )
-echo "Instalando pacotes NVIDIA..."
-sudo pacman -S --needed "${NVIDIA_PACKAGES[@]}"
-INSTALL_STATUS=$?
+echo -e "${GREEN}--- 4. Verificação e Instalação dos Drivers NVIDIA ---${NC}"
 
-if [ $INSTALL_STATUS -eq 0 ]; then
-    echo "Habilitando modeset para NVIDIA DRM..."
-    echo "options nvidia-drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf
-    echo "Recriando a imagem initramfs..."
-    sudo mkinitcpio -P
+# Verificação de hardware NVIDIA
+if lspci | grep -Ei 'vga|3d|display' | grep -i nvidia > /dev/null; then
+    echo -e "${YELLOW}Placa NVIDIA detectada. Prosseguindo com instalação dos drivers proprietários (série 590+ com open kernel modules).${NC}"
+
+    # Pacotes padrão (open kernel modules por default em 2025 para RTX 40xx)
+    NVIDIA_PACKAGES=(nvidia nvidia-utils nvidia-settings lib32-nvidia-utils)
+
+    echo "Instalando pacotes NVIDIA..."
+    sudo pacman -S --needed "${NVIDIA_PACKAGES[@]}"
+    INSTALL_STATUS=$?
+
+    if [ $INSTALL_STATUS -ne 0 ]; then
+        echo -e "\n${RED}--- ERRO NA INSTALAÇÃO DOS PACOTES NVIDIA ---${NC}"
+        echo -e "${RED}Não foi possível instalar os drivers NVIDIA.${NC}"
+        echo -e "${YELLOW}Você pode tentar manualmente depois: sudo pacman -S nvidia nvidia-utils nvidia-settings lib32-nvidia-utils${NC}"
+        confirmar_proxima_etapa "instalação de pacotes do AUR via yay" $INSTALL_STATUS
+    else
+        echo -e "${GREEN}Pacotes NVIDIA instalados com sucesso.${NC}"
+
+        # Configurações essenciais (modeset=1 e fbdev=1 já default em drivers recentes)
+        echo -e "${YELLOW}Configurando parâmetros NVIDIA...${NC}"
+        echo "options nvidia_drm modeset=1 fbdev=1" | sudo tee /etc/modprobe.d/nvidia.conf > /dev/null
+
+        # Módulos no mkinitcpio
+        if grep -q "^MODULES=" /etc/mkinitcpio.conf; then
+            sudo sed -i 's/^MODULES=(\(.*\))/MODULES=(\1 nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
+        else
+            echo 'MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)' | sudo tee -a /etc/mkinitcpio.conf > /dev/null
+        fi
+        sudo mkinitcpio -P
+
+        # GRUB mais robusto: adiciona parâmetros substituindo "quiet" se existir
+        if ! grep -q "nvidia_drm.modeset=1" /etc/default/grub; then
+            sudo sed -i '/GRUB_CMDLINE_LINUX_DEFAULT=/ s/quiet"/nvidia_drm.modeset=1 nvidia_drm.fbdev=1 quiet"/' /etc/default/grub || \
+            sudo sed -i '/GRUB_CMDLINE_LINUX_DEFAULT=/ s/"/ nvidia_drm.modeset=1 nvidia_drm.fbdev=1"/' /etc/default/grub
+            sudo grub-mkconfig -o /boot/grub/grub.cfg
+            echo -e "${GREEN}GRUB atualizado com parâmetros NVIDIA.${NC}"
+        fi
+
+        echo -e "\n${GREEN}Configuração NVIDIA concluída!${NC}"
+        echo -e "${YELLOW}REINICIE O SISTEMA para ativar os drivers.${NC}"
+    fi
 else
-    echo -e "\n${RED}--- ERRO NA INSTALAÇÃO ---${NC}"
-    echo -e "${RED}Os drivers da NVIDIA não puderam ser instalados.${NC}"
-    echo -e "${YELLOW}Motivo:${NC} Verifique se sua placa é compatível ou se os pacotes estão disponíveis."
-    echo -e "\n${YELLOW}Para diagnosticar, execute o seguinte comando manualmente:${NC}"
-    echo -e "sudo pacman -S --needed $NVIDIA_PACKAGES_STR\n"
+    echo -e "${YELLOW}Nenhuma placa NVIDIA detectada. Pulando instalação de drivers NVIDIA.${NC}"
+    INSTALL_STATUS=0
 fi
-confirmar_proxima_etapa "instalação de pacotes do AUR via yay" $INSTALL_STATUS
 
+confirmar_proxima_etapa "instalação de pacotes do AUR via yay" $INSTALL_STATUS
 
 # --- 5. Instalação de Pacotes Adicionais (yay - AUR) ---
 separator
@@ -199,90 +223,50 @@ if [ $INSTALL_STATUS -ne 0 ]; then
 fi
 confirmar_proxima_etapa "configuração final do sistema" $INSTALL_STATUS
 
-
-# --- 6. Configurações Finais do Sistema (Incluindo a Cópia de Configurações) ---
+# --- 6. Configurações Finais do Sistema (ATUALIZADO) ---
 separator
 echo -e "${GREEN}--- 6. Configurações Finais do Sistema ---${NC}"
 
-# REFORÇO: Etapa para garantir a criação inicial das pastas XDG antes da cópia de configs
+# Criação de pastas XDG
 echo "Garantindo que as pastas de usuário (Documentos, Downloads, etc.) existam..."
-# A execução no script é confiável porque o pacote 'xdg-user-dirs' já foi instalado no Lote 1.
 xdg-user-dirs-update --force
 XDG_DIRS_STATUS=$?
-if [ $XDG_DIRS_STATUS -ne 0 ]; then
-    echo -e "${RED}AVISO: Falha ao criar os diretórios de usuário XDG (status: $XDG_DIRS_STATUS). A operação continuará.${NC}"
-fi
 
-# NOVO: Validação do arquivo de configuração principal
+# Validação do arquivo XDG
 if [ -f "$HOME_DESTINO/.config/user-dirs.dirs" ]; then
-    echo -e "${GREEN}Arquivo de configuração XDG (user-dirs.dirs) encontrado.${NC}"
+    echo -e "${GREEN}Arquivo de configuração XDG encontrado.${NC}"
 else
-    echo -e "${RED}AVISO: O arquivo ~/.config/user-dirs.dirs NÃO foi encontrado após a atualização XDG.${NC}"
-    echo -e "${YELLOW}Isso pode fazer com que as pastas não apareçam corretamente na seção 'Locais' do Dolphin.${NC}"
+    echo -e "${RED}AVISO: Arquivo ~/.config/user-dirs.dirs não encontrado.${NC}"
 fi
 
-# Bloco de Cópia e Permissões (Integrado do script original)
-echo -e "\n${YELLOW}Copiando arquivos de configuração ($CONFIG_ORIGEM) para $HOME_DESTINO/ (Sobrescrevendo se existir)...${NC}"
-
-# Comando de cópia.
-# '\cp': Garante que nenhum alias (como 'cp -i') interfira.
-# '-r': Copia recursivamente.
-# '-f': Força a sobrescrita de arquivos existentes.
+# Cópia de configurações
+echo -e "\n${YELLOW}Copiando arquivos de configuração para $HOME_DESTINO/.config ...${NC}"
 \cp -rf "$CONFIG_ORIGEM" "$HOME_DESTINO/"
 COPY_STATUS=$?
 
 if [ $COPY_STATUS -ne 0 ]; then
-    echo -e "${RED}ERRO: Falha ao copiar os arquivos de configuração.${NC}"
-    # Não interrompe, mas avisa e usa o mecanismo de confirmação
+    echo -e "${RED}ERRO: Falha ao copiar configurações.${NC}"
     confirmar_proxima_etapa "próximos ajustes do sistema" $COPY_STATUS
 fi
 
-# Ajuste de Permissões
-if [ "$EUID" -ne 0 ]; then
-    echo -e "\n${YELLOW}Ajustando permissões para o usuário $USUARIO (operação local)...${NC}"
-    chown -R "$USUARIO:$USUARIO" "$HOME_DESTINO/.config"
-else
-    # Se o script foi executado como root/sudo
-    echo -e "\n${YELLOW}Permissões mantidas (Script executado como root).${NC}"
-fi
+# Permissões
+chown -R "$USUARIO:$USUARIO" "$HOME_DESTINO/.config"
+echo -e "${GREEN}Configurações copiadas e permissões ajustadas.${NC}"
 
-echo -e "${GREEN}Configurações copiadas e sobrescritas com sucesso para $HOME_DESTINO/.config${NC}"
-
-
-# Restante das Configurações Finais
-
-# *************************************************************************
-# ALTERAÇÃO AQUI: Verificação de status do kbuildsycoca6
-# *************************************************************************
-echo "Reconstruindo o cache do KBuildsycoca6..."
-# Esta etapa é crucial para que o Dolphin (e outros aplicativos KDE) leia as novas configurações XDG
+# Reconstrução do cache KDE (executada duas vezes para maior confiabilidade)
+echo "Reconstruindo cache do KDE (kbuildsycoca6)..."
 XDG_MENU_PREFIX=arch- kbuildsycoca6
-KBUILD_STATUS=$?
+XDG_MENU_PREFIX=arch- kbuildsycoca6  # Segunda execução garante atualização
 
-if [ $KBUILD_STATUS -eq 0 ]; then
-    echo -e "${GREEN}kbuildsycoca6 executado com sucesso.${NC}"
-else
-    echo -e "${YELLOW}AVISO: kbuildsycoca6 retornou erro (Status: $KBUILD_STATUS).${NC}"
-    echo -e "${YELLOW}Isso é comum se executado fora de uma sessão gráfica completa.${NC}"
-    echo -e "${RED}Se as pastas não aparecerem no Dolphin após o reboot, execute-o manualmente em um terminal:${NC}"
-    echo -e "${RED}XDG_MENU_PREFIX=arch- kbuildsycoca6${NC}"
-fi
-# *************************************************************************
-
-echo "Configurando capacidades do gamescope..."
+# Gamescope capabilities
 if command -v gamescope &> /dev/null; then
     sudo setcap 'CAP_SYS_NICE=eip' "$(which gamescope)"
-else
-    echo -e "${RED}AVISO: O comando 'gamescope' não foi encontrado. As capacidades não puderam ser definidas.${NC}"
 fi
 
-echo "Adicionando o usuário $USUARIO ao grupo 'render'..."
-sudo gpasswd -a "$USUARIO" render
-
-echo "Configurando o layout do teclado para ABNT2 (Brasil)..."
+# Layout de teclado ABNT2
 sudo localectl set-x11-keymap br abnt2
-confirmar_proxima_etapa "habilitação de serviços do sistema" 0
 
+confirmar_proxima_etapa "habilitação de serviços do sistema" 0
 
 # --- 7. Habilitação de Serviços Críticos (systemctl) ---
 separator
@@ -309,8 +293,7 @@ separator
 echo -e "\n${GREEN}======================================================${NC}"
 echo -e "${GREEN}✔️ Instalação e Configuração Concluídas!${NC}"
 echo -e "${GREEN}======================================================${NC}"
-echo -e "1. ${RED}REINICIE SEU SISTEMA${NC} para que todas as alterações entrem em vigor."
-echo -e "2. Após reiniciar, você deve conseguir iniciar o ${GREEN}Hyprland${NC}."
-echo -e "3. Se as pastas de usuário (Locais) ainda não aparecerem no Dolphin, execute em um terminal:"
-echo -e "   ${RED}XDG_MENU_PREFIX=arch- kbuildsycoca6${NC} e reinicie o Dolphin."
+echo -e "1. ${RED}REINICIE SEU SISTEMA${NC} para ativar todas as alterações (especialmente drivers NVIDIA)."
+echo -e "2. Após reboot, inicie o Hyprland."
+echo -e "3. Se as pastas 'Locais' não aparecerem no Dolphin, execute: ${RED}XDG_MENU_PREFIX=arch- kbuildsycoca6${NC}"
 echo ""
